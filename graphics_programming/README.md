@@ -1,2 +1,2 @@
 ### Compilation flags
-'''gcc <filename> -lGL -GLU -lglut'''
+```gcc <filename> -lGL -GLU -lglut```
