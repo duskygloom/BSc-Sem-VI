@@ -36,7 +36,6 @@ void drawLine(int x1, int y1, int x2, int y2) {
     }
 }
 
-
 void displayFunc(void) {
     glClearColor(0, 0.8, 0.4, 1);
     glClear(GL_COLOR_BUFFER_BIT);
