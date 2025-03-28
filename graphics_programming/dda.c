@@ -41,23 +41,23 @@ void displayFunc(void) {
     glClear(GL_COLOR_BUFFER_BIT);
 
     glColor3f(1, 0, 0);
-    for (int i = 50; i < APP_HEIGHT; i += 50) {
-        drawLine(10, i, 300, 200);
+    for (int i = 0; i <= 400; i += 50) {
+        drawLine(0, i, 300, 200);
     }
 
     glColor3f(0, 0, 1);
-    for (int i = 50; i < APP_WIDTH; i += 50) {
-        drawLine(i, 10, 300, 200);
+    for (int i = 0; i <= 600; i += 50) {
+        drawLine(i, 0, 300, 200);
     }
 
     glColor3f(1, 1, 1);
-    for (int i = 50; i < APP_HEIGHT; i += 50) {
-        drawLine(590, i, 300, 200);
+    for (int i = 0; i <= 400; i += 50) {
+        drawLine(600, i, 300, 200);
     }
 
     glColor3f(0, 0, 0);
-    for (int i = 50; i < APP_WIDTH; i += 50) {
-        drawLine(i, 390, 300, 200);
+    for (int i = 0; i <= 600; i += 50) {
+        drawLine(i, 400, 300, 200);
     }
     
     glFlush();
