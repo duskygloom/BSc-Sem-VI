@@ -41,11 +41,28 @@ concat([X | Rest1], A, [X | Rest2]) :- concat(Rest1, A, Rest2).
 /* lastElement function using concat */
 
 /* nextTo using concat */
- nextToConcat(A, B, L) :- concat([A], [B], [A | B]).
+nextToConcat(A, B, _) :- concat([A], [B], [A | B]).
 
 /* exists function using concat */
+existsConcat(X, Y) :- append(_, [X | _], Y).
 
 /* Reverse a list. */
+reverseList([], []).
+reverseList([X | T], L) :- reverseList(T, Z), append(Z, [X], L).
 
 /* Check whether a list is palindrome. */
+palindrome(X) :- reverseList(X, X).
+
+/* Length of a list. */
+listLength([], 0).
+/* listLength([_ | L], s(N)) :- listLength(L, N). */
+listLength([_ | L], listLength(L) + 1).
+
+/* Check whether a number is even or not. */
+even(0).
+even(s(s(N))) :- even(N).
+
+/* Check whether a number is odd or not. */
+odd(s(0)).
+odd(s(s(N))) :- odd(N).
 
