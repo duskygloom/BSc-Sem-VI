@@ -86,6 +86,7 @@ void displayFunc(void) {
     glClearColor(1, 1, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    glColor3f(0, 1, 0);
     glBegin(GL_LINES);
     #ifdef BIG_PIXELS
     glVertex2d(0, -30);
