@@ -36,5 +36,5 @@
    ```
 7. Use the following linker flags when compiling:
    ```sh
-   gcc foo.c -lm -lopengl32 -lglu32 -lfreeglut
+   gcc foo.c -lopengl32 -lglu32 -lfreeglut
    ```
