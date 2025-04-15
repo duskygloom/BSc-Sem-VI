@@ -1,4 +1,5 @@
 #define __USE_MISC // to include math.h constants
+#define _USE_MATH_DEFINES // include constants in windows
 
 #include <math.h>
 #include <stdio.h>
