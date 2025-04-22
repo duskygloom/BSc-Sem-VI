@@ -38,9 +38,8 @@
    ```sh
    gcc foo.c -lopengl32 -lglu32 -lfreeglut
    ```
-8. vscode configuration:
+8. VS code configuration (c_cpp_properties.json):
    ```json
-   // c_cpp_properties.json
    {
       "configurations": [
          {
