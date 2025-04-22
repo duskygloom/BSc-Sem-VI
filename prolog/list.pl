@@ -58,11 +58,3 @@ listLength([], 0).
 /* listLength([_ | L], s(N)) :- listLength(L, N). */
 listLength([_ | L], listLength(L) + 1).
 
-/* Check whether a number is even or not. */
-even(0).
-even(s(s(N))) :- even(N).
-
-/* Check whether a number is odd or not. */
-odd(s(0)).
-odd(s(s(N))) :- odd(N).
-
