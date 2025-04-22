@@ -82,18 +82,36 @@ void scaleMatrix(Matrix3x3 matrix, float sx, float sy) {
 }
 
 typedef enum {
-    ALONG_X_AXIS,
-    ALONG_Y_AXIS,
-    ALONG_ORIGIN
+    REFLECT_ALONG_X_AXIS,
+    REFLECT_ALONG_Y_AXIS
 } reflection_t;
 
 void reflectMatrix(Matrix3x3 matrix, reflection_t type) {
     Matrix3x3 rm = { // reflection matrix
-        {(type == ALONG_X_AXIS ? 1.0 : -1.0), 0.0, 0.0},
-        {0.0, (type == ALONG_Y_AXIS ? 1.0 : -1.0), 0.0},
+        {(type == REFLECT_ALONG_Y_AXIS ? -1.0 : 1.0), 0.0, 0.0},
+        {0.0, (type == REFLECT_ALONG_X_AXIS ? -1.0 : 1.0), 0.0},
         {0.0, 0.0, 1.0}
     };
     multiplication(matrix, rm);
+}
+
+typedef enum {
+    SHEER_ALONG_X_AXIS,
+    SHEER_ALONG_Y_AXIS
+} sheer_t;
+
+/**
+ * @brief
+ * Sheer along X-axis by setting a non-zero value of shx
+ * and along Y-axis by setting a non-zero value of shy.
+ */
+void sheerMatrix(Matrix3x3 matrix, float factor, sheer_t type) {
+    Matrix3x3 sm = { // sheer matrix
+        {1, factor * (type == SHEER_ALONG_X_AXIS), 0},
+        {factor * (type == SHEER_ALONG_Y_AXIS), 1, 0},
+        {0, 0, 1}
+    };
+    multiplication(matrix, sm);
 }
 
 typedef struct {
@@ -165,37 +183,103 @@ void drawStuff(void) {
     glEnd();
 
     /* transform unit matrix */
-    
+
     translateMatrix(transformation, 6, 4);
     
-    glColor3f(0.6, 0.6, 0.6);
-    glBegin(GL_LINES);
-    plotPoint(transformPoint(a, transformation));
-    plotPoint(transformPoint(b, transformation));
-    plotPoint(transformPoint(b, transformation));
-    plotPoint(transformPoint(c, transformation));
-    plotPoint(transformPoint(c, transformation));
-    plotPoint(transformPoint(d, transformation));
-    plotPoint(transformPoint(d, transformation));
-    plotPoint(transformPoint(a, transformation));
-    glEnd();
+    // glColor3f(0.6, 0.6, 0.6);
+    // glBegin(GL_LINES);
+    // plotPoint(transformPoint(a, transformation));
+    // plotPoint(transformPoint(b, transformation));
+    // plotPoint(transformPoint(b, transformation));
+    // plotPoint(transformPoint(c, transformation));
+    // plotPoint(transformPoint(c, transformation));
+    // plotPoint(transformPoint(d, transformation));
+    // plotPoint(transformPoint(d, transformation));
+    // plotPoint(transformPoint(a, transformation));
+    // glEnd();
     
+    scaleMatrix(transformation, 2, 2);
     rotateMatrix(transformation, 45);
 
-    glColor3f(0.4, 0.4, 0.4);
-    glBegin(GL_LINES);
-    plotPoint(transformPoint(a, transformation));
-    plotPoint(transformPoint(b, transformation));
-    plotPoint(transformPoint(b, transformation));
-    plotPoint(transformPoint(c, transformation));
-    plotPoint(transformPoint(c, transformation));
-    plotPoint(transformPoint(d, transformation));
-    plotPoint(transformPoint(d, transformation));
-    plotPoint(transformPoint(a, transformation));
-    glEnd();
+    // glColor3f(0.4, 0.4, 0.4);
+    // glBegin(GL_LINES);
+    // plotPoint(transformPoint(a, transformation));
+    // plotPoint(transformPoint(b, transformation));
+    // plotPoint(transformPoint(b, transformation));
+    // plotPoint(transformPoint(c, transformation));
+    // plotPoint(transformPoint(c, transformation));
+    // plotPoint(transformPoint(d, transformation));
+    // plotPoint(transformPoint(d, transformation));
+    // plotPoint(transformPoint(a, transformation));
+    // glEnd();
     
     translateMatrix(transformation, -6, -4);
     
+    glColor3f(0.2, 0.2, 0.2);
+    glBegin(GL_LINES);
+    plotPoint(transformPoint(a, transformation));
+    plotPoint(transformPoint(b, transformation));
+    plotPoint(transformPoint(b, transformation));
+    plotPoint(transformPoint(c, transformation));
+    plotPoint(transformPoint(c, transformation));
+    plotPoint(transformPoint(d, transformation));
+    plotPoint(transformPoint(d, transformation));
+    plotPoint(transformPoint(a, transformation));
+    glEnd();
+
+    glFlush();
+
+    PRINT_TEXT = 0;
+}
+
+void test(void) {
+    Matrix3x3 transformation = {
+        {1.0, 0.0, 0.0},
+        {0.0, 1.0, 0.0},
+        {0.0, 0.0, 1.0}
+    };
+
+    Point a = newPoint(0, 0);
+    Point b = newPoint(4, 0);
+    Point c = newPoint(4, 4);
+    Point d = newPoint(0, 4);
+
+    glClearColor(1, 1, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);                       // yellow background
+
+    /* X and Y axis */
+    glColor3f(0, 1, 0);
+    glLineWidth(1);
+    glBegin(GL_LINES);
+    glVertex2d(300, 0);
+    glVertex2d(-300, 0);
+    glVertex2d(0, 400);
+    glVertex2d(0, -400);
+    glEnd();
+
+    glColor3f(0, 0, 1);                                 // blue pen color
+    #ifdef BIG_POINTS
+    glPointSize(10);
+    #else
+    glPointSize(1);
+    #endif
+
+    glBegin(GL_LINES);
+    plotPoint(a);
+    plotPoint(b);
+    plotPoint(b);
+    plotPoint(c);
+    plotPoint(c);
+    plotPoint(d);
+    plotPoint(d);
+    plotPoint(a);
+    glEnd();
+
+    /* transform unit matrix */
+    // translateMatrix(transformation, 0, -1);
+    reflectMatrix(transformation, REFLECT_ALONG_X_AXIS);
+    sheerMatrix(transformation, 1.5, SHEER_ALONG_X_AXIS);
+
     glColor3f(0.2, 0.2, 0.2);
     glBegin(GL_LINES);
     plotPoint(transformPoint(a, transformation));
@@ -222,7 +306,7 @@ int main(int argc, char **argv) {
     #else
     gluOrtho2D(-400, 400, -300, 300);
     #endif
-    glutDisplayFunc(drawStuff);
+    glutDisplayFunc(test);
     glutMainLoop();
     return 0;
 }
