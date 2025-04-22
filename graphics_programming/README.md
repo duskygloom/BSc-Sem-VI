@@ -38,3 +38,32 @@
    ```sh
    gcc foo.c -lopengl32 -lglu32 -lfreeglut
    ```
+8. VS code configuration (c_cpp_properties.json):
+   ```json
+   {
+      "configurations": [
+         {
+               "name": "OpenGL",
+               "includePath": [
+                  "${workspaceFolder}/**"
+               ],
+               "defines": [
+                  "_DEBUG",
+                  "UNICODE",
+                  "_UNICODE"
+               ],
+               "compilerPath": "C:/msys64/ucrt64/bin/gcc.exe",
+               "cStandard": "c17",
+               "cppStandard": "c++17",
+               "intelliSenseMode": "${default}",
+               "compilerArgs": [
+                  "-lm",
+                  "-lglu32",
+                  "-lopengl32",
+                  "-lfreeglut"
+               ]
+         }
+      ],
+      "version": 4
+   }
+   ```
