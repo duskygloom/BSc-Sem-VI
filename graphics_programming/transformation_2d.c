@@ -158,10 +158,8 @@ void drawStuff(void) {
     glColor3f(0, 1, 0);
     glLineWidth(1);
     glBegin(GL_LINES);
-    glVertex2d(300, 0);
-    glVertex2d(-300, 0);
-    glVertex2d(0, 400);
-    glVertex2d(0, -400);
+    glVertex2d(300, 0); glVertex2d(-300, 0);
+    glVertex2d(0, 400); glVertex2d(0, -400);
     glEnd();
 
     glColor3f(0, 0, 1);                                 // blue pen color
@@ -172,59 +170,25 @@ void drawStuff(void) {
     #endif
 
     glBegin(GL_LINES);
-    plotPoint(a);
-    plotPoint(b);
-    plotPoint(b);
-    plotPoint(c);
-    plotPoint(c);
-    plotPoint(d);
-    plotPoint(d);
-    plotPoint(a);
+    plotPoint(a); plotPoint(b);
+    plotPoint(b); plotPoint(c);
+    plotPoint(c); plotPoint(d);
+    plotPoint(d); plotPoint(a);
     glEnd();
 
     /* transform unit matrix */
 
     translateMatrix(transformation, 6, 4);
-    
-    // glColor3f(0.6, 0.6, 0.6);
-    // glBegin(GL_LINES);
-    // plotPoint(transformPoint(a, transformation));
-    // plotPoint(transformPoint(b, transformation));
-    // plotPoint(transformPoint(b, transformation));
-    // plotPoint(transformPoint(c, transformation));
-    // plotPoint(transformPoint(c, transformation));
-    // plotPoint(transformPoint(d, transformation));
-    // plotPoint(transformPoint(d, transformation));
-    // plotPoint(transformPoint(a, transformation));
-    // glEnd();
-    
     scaleMatrix(transformation, 2, 2);
     rotateMatrix(transformation, 45);
-
-    // glColor3f(0.4, 0.4, 0.4);
-    // glBegin(GL_LINES);
-    // plotPoint(transformPoint(a, transformation));
-    // plotPoint(transformPoint(b, transformation));
-    // plotPoint(transformPoint(b, transformation));
-    // plotPoint(transformPoint(c, transformation));
-    // plotPoint(transformPoint(c, transformation));
-    // plotPoint(transformPoint(d, transformation));
-    // plotPoint(transformPoint(d, transformation));
-    // plotPoint(transformPoint(a, transformation));
-    // glEnd();
-    
     translateMatrix(transformation, -6, -4);
     
     glColor3f(0.2, 0.2, 0.2);
     glBegin(GL_LINES);
-    plotPoint(transformPoint(a, transformation));
-    plotPoint(transformPoint(b, transformation));
-    plotPoint(transformPoint(b, transformation));
-    plotPoint(transformPoint(c, transformation));
-    plotPoint(transformPoint(c, transformation));
-    plotPoint(transformPoint(d, transformation));
-    plotPoint(transformPoint(d, transformation));
-    plotPoint(transformPoint(a, transformation));
+    plotPoint(transformPoint(a, transformation)); plotPoint(transformPoint(b, transformation));
+    plotPoint(transformPoint(b, transformation)); plotPoint(transformPoint(c, transformation));
+    plotPoint(transformPoint(c, transformation)); plotPoint(transformPoint(d, transformation));
+    plotPoint(transformPoint(d, transformation)); plotPoint(transformPoint(a, transformation));
     glEnd();
 
     glFlush();
@@ -251,10 +215,8 @@ void test(void) {
     glColor3f(0, 1, 0);
     glLineWidth(1);
     glBegin(GL_LINES);
-    glVertex2d(300, 0);
-    glVertex2d(-300, 0);
-    glVertex2d(0, 400);
-    glVertex2d(0, -400);
+    glVertex2d(300, 0); glVertex2d(-300, 0);
+    glVertex2d(0, 400); glVertex2d(0, -400);
     glEnd();
 
     glColor3f(0, 0, 1);                                 // blue pen color
@@ -265,14 +227,10 @@ void test(void) {
     #endif
 
     glBegin(GL_LINES);
-    plotPoint(a);
-    plotPoint(b);
-    plotPoint(b);
-    plotPoint(c);
-    plotPoint(c);
-    plotPoint(d);
-    plotPoint(d);
-    plotPoint(a);
+    plotPoint(a); plotPoint(b);
+    plotPoint(b); plotPoint(c);
+    plotPoint(c); plotPoint(d);
+    plotPoint(d); plotPoint(a);
     glEnd();
 
     /* transform unit matrix */
@@ -282,14 +240,10 @@ void test(void) {
 
     glColor3f(0.2, 0.2, 0.2);
     glBegin(GL_LINES);
-    plotPoint(transformPoint(a, transformation));
-    plotPoint(transformPoint(b, transformation));
-    plotPoint(transformPoint(b, transformation));
-    plotPoint(transformPoint(c, transformation));
-    plotPoint(transformPoint(c, transformation));
-    plotPoint(transformPoint(d, transformation));
-    plotPoint(transformPoint(d, transformation));
-    plotPoint(transformPoint(a, transformation));
+    plotPoint(transformPoint(a, transformation)); plotPoint(transformPoint(b, transformation));
+    plotPoint(transformPoint(b, transformation)); plotPoint(transformPoint(c, transformation));
+    plotPoint(transformPoint(c, transformation)); plotPoint(transformPoint(d, transformation));
+    plotPoint(transformPoint(d, transformation)); plotPoint(transformPoint(a, transformation));
     glEnd();
 
     glFlush();
