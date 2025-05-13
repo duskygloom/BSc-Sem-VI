@@ -1,2 +1,4 @@
 .fleet/
 *.exe
+build/
+*.o
