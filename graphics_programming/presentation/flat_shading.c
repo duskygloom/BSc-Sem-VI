@@ -12,7 +12,7 @@ int DRAW_WORLD_AXES = 1;
 
 /* About light sources. */
 vector_t lights[] = {
-    /* Position                 Color                   Brightness (only .x is used)*/
+    /* Position                 Color                   Brightness (only .x is used) */
        {-500, 400, -300},       {0xff, 0xe9, 0x48},     {0.4, 0, 0},
        {600, 600, 600},         {0xff, 0xff, 0xff},     {0.1, 0, 0},
 };
