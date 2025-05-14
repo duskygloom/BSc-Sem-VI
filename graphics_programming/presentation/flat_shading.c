@@ -10,6 +10,9 @@ int USE_DISTANCE = 1;
 int DRAW_LIGHT_AXES = 0;
 int DRAW_WORLD_AXES = 1;
 
+/* Camera. */
+vector_t camera = {600, 600, 600};
+
 /* About light sources. */
 vector_t lights[] = {
     /* Position                 Color                   Brightness (only .x is used) */
@@ -22,9 +25,6 @@ const int nLights = sizeof(lights) / sizeof(vector_t) / 3;
 /* Value of p and k used in the algorithm. */
 int pValue = 1;
 float kValue = 0.0001f;
-
-/* Global angle value to rotate the scene. */
-float angle = 0;
 
 
 /* Utility functions to make life easier. */
@@ -54,14 +54,7 @@ void drawVertex(vector_t point) {
     glVertex3d(point.x, point.y, point.z);
 }
 
-/** if (PRINT) printf("I3: %.4f\n", I3);
-        color3 = vectorSum(color3, getColorWithIntensity(getLightColor(i), I3));
-    }
-    changeColor3f(color3);
-    drawVertex(A3);
-    drawVertex(B3);
-    drawVertex(C3);
-    drawVertex(D3);
+/**
  * @brief
  * Clamps a float value between 0 and 1.
  */
@@ -306,54 +299,37 @@ void display(void) {
  */
 void keyboard(unsigned char key, int x, int y) {
     switch (key) {
+        /* rotation */
         case '1':
-        angle += 0.1;
-        glRotatef(angle, 1, 0, 0);
-        break;
+        glRotatef(10, 1, 0, 0); break;
         case '2':
-        angle += 0.1;
-        glRotatef(angle, 0, 1, 0);
-        break;
+        glRotatef(10, 0, 1, 0); break;
         case '3':
-        angle += 0.1;
-        glRotatef(angle, 0, 0, 1);
-        break;
+        glRotatef(10, 0, 0, 1); break;
         case '4':
-        angle += 0.1;
-        glRotatef(angle, 1, 1, 0);
-        break;
+        glRotatef(10, 1, 1, 0); break;
         case '5':
-        angle += 0.1;
-        glRotatef(angle, 0, 1, 1);
-        break;
+        glRotatef(10, 0, 1, 1); break;
         case '6':
-        angle += 0.1;
-        glRotatef(angle, 1, 0, 1);
-        break;
+        glRotatef(10, 1, 0, 1); break;
+        /* translation */
         case 'a':
-        glTranslatef(-10, 0, 0);
-        break;
+        glTranslatef(-10, 0, 0); break;
         case 'd':
-        glTranslatef(10, 0, 0);
-        break;
+        glTranslatef(10, 0, 0); break;
         case 'w':
-        glTranslatef(0, 10, 0);
-        break;
+        glTranslatef(0, 10, 0); break;
         case 's':
-        glTranslatef(0, -10, 0);
-        break;
+        glTranslatef(0, -10, 0); break;
         case 'q':
-        glTranslatef(0, 0, 10);
-        break;
+        glTranslatef(0, 0, 10); break;
         case 'e':
-        glTranslatef(0, 0, -10);
-        break;
+        glTranslatef(0, 0, -10); break;
+        /* scaling */
         case '=':
-        glScalef(1.2, 1.2, 1.2);
-        break;
+        glScalef(1.2, 1.2, 1.2); break;
         case '-':
-        glScalef(0.8, 0.8, 0.8);
-        break;
+        glScalef(0.8, 0.8, 0.8); break;
     }
     glutPostRedisplay();
 }
@@ -371,7 +347,9 @@ int main(int argc, char **argv) {
     gluPerspective(30, 4.0/3, 1, 2000);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(600, 600, 600, 0, 0, 0, 0, 1, 0);
+    gluLookAt(camera.x, camera.y, camera.z,
+              0, 0, 0,
+              0, 1, 0);
 
     glutKeyboardFunc(keyboard);
     glutDisplayFunc(display);
