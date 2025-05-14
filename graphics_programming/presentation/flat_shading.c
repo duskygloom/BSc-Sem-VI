@@ -135,11 +135,11 @@ void drawAxes(void) {
 
     if (DRAW_WORLD_AXES) {
         glColor3f(1, 0, 0);
-        glVertex3d(0, 0, 0); glVertex3d(1000, 0, 0);
+        glVertex3d(-1000, 0, 0); glVertex3d(1000, 0, 0);
         glColor3f(0, 1, 0);
-        glVertex3d(0, 0, 0); glVertex3d(0, 1000, 0);
+        glVertex3d(0, -1000, 0); glVertex3d(0, 1000, 0);
         glColor3f(0, 0, 1);
-        glVertex3d(0, 0, 0); glVertex3d(0, 0, 1000);
+        glVertex3d(0, 0, -1000); glVertex3d(0, 0, 1000);
     }
 
     glEnd();
@@ -334,6 +334,40 @@ void keyboard(unsigned char key, int x, int y) {
     glutPostRedisplay();
 }
 
+/**
+ * @brief
+ * What to do if window size changes?
+ */
+void reshape(int width, int height) {
+    int newHeight, newWidth, top, left;
+    /* force 4:3 aspect ratio */
+    const float aspectRatio = 4.0 / 3;
+    if (width >= height*aspectRatio) {
+        // decrease width and center horizontally
+        newHeight = height;
+        newWidth = height*aspectRatio;
+        top = 0;
+        left = (width - newWidth) / 2;
+    } else {
+        // decrease height and center vertically
+        newWidth = width;
+        newHeight = width/aspectRatio;
+        left = 0;
+        top = (height - newHeight) / 2;
+    }
+    glViewport(left, top, newWidth, newHeight);
+    /* preserve projection */
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(30, aspectRatio, 1, 2000);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(camera.x, camera.y, camera.z,
+              0, 0, 0,
+              0, 1, 0);
+    glutPostRedisplay();
+}
+
 int main(int argc, char **argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
@@ -353,6 +387,7 @@ int main(int argc, char **argv) {
 
     glutKeyboardFunc(keyboard);
     glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
     glutMainLoop();
 
     return 0;
