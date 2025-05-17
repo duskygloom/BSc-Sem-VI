@@ -1,0 +1,7 @@
+$ make SOURCE=bresenham.c 
+mkdir -p build
+gcc -Wall -g bresenham.c -o build/a.out -lGL -lGLU -lglut
+$ make run
+build/a.out
+Point 1: -60 40
+Point 2: 40 -20

@@ -1,0 +1,7 @@
+$ make SOURCE=dda.c
+mkdir -p build
+gcc -Wall -g dda.c -o build/a.out -lGL -lGLU -lglut
+$ make run
+build/a.out
+Point 1: -40 30
+Point 2: 30 -40

@@ -1,0 +1,7 @@
+$ make SOURCE=translation_2d.c 
+mkdir -p build
+gcc -Wall -g translation_2d.c -o build/a.out -lGL -lGLU -lglut
+$ make run
+build/a.out
+Tx, Ty: -20 30
+Use arrow keys to translate the polygon.

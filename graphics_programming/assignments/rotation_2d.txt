@@ -1,0 +1,9 @@
+$ make SOURCE=rotation_2d.c 
+mkdir -p build
+gcc -Wall -g rotation_2d.c -o build/a.out -lGL -lGLU -lglut -lm
+$ make run 
+build/a.out
+Pivot(x, y): -40 20
+Angle of rotation (in degrees): 23
+Use arrow keys to move the pivot.
+Use = and - keys to rotate the polygon.

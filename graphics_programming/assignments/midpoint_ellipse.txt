@@ -1,0 +1,7 @@
+$ make SOURCE=midpoint_ellipse.c 
+mkdir -p build
+gcc -Wall -g midpoint_ellipse.c -o build/a.out -lGL -lGLU -lglut
+$ make run
+build/a.out
+Radii (horizontal, vertical): 120 80
+Center: -80 -10

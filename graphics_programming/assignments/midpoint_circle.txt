@@ -1,0 +1,7 @@
+$ make SOURCE=midpoint_circle.c
+mkdir -p build
+gcc -Wall -g midpoint_circle.c -o build/a.out -lGL -lGLU -lglut
+$ make run
+build/a.out
+Radius: 100
+Center: -50 -40
