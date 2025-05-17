@@ -6,7 +6,7 @@
    ```
 2. Use the following linker flags when compiling:
    ```sh
-   gcc foo.c -lGL -GLU -lglut
+   gcc foo.c -lGL -lGLU -lglut
    ```
 
 ### Using openGL in redhat-based linux
