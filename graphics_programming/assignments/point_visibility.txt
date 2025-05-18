@@ -1,0 +1,6 @@
+$ make SOURCE=point_visibility.c 
+mkdir -p build
+gcc -Wall -g point_visibility.c -o build/a.out -lGL -lGLU -lglut -lm
+$ make run
+build/a.out
+Point: 200 50

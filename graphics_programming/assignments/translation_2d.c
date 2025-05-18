@@ -55,7 +55,7 @@ void matrixMultiply(Matrix3x3 a, Matrix3x3 b) {
 /* Matrix stuff ends. */
 
 // global variable to store transformation matrix
-Matrix3x3 transfomation;
+Matrix3x3 transformation;
 
 void translate(int tx, int ty) {
     // create translation matrix
@@ -65,21 +65,21 @@ void translate(int tx, int ty) {
         {0, 0, 1}
     };
     // multiply with global transformation matrix
-    matrixMultiply(transfomation, translation);
+    matrixMultiply(transformation, translation);
 }
 
 float getTransformedX(int x, int y) {
     // multiplication of first row and first column
-    return transfomation[0][0] * x
-           + transfomation[0][1] * y
-           + transfomation[0][2];
+    return transformation[0][0] * x
+           + transformation[0][1] * y
+           + transformation[0][2];
 }
 
 float getTransformedY(int x, int y) {
     // multiplication of second row and first column
-    return transfomation[1][0] * x 
-           + transfomation[1][1] * y
-           + transfomation[1][2];
+    return transformation[1][0] * x 
+           + transformation[1][1] * y
+           + transformation[1][2];
 }
 
 void displayFunc(void) {
@@ -102,7 +102,7 @@ void displayFunc(void) {
     glEnd();
 
     // begin transformation!
-    unitMatrix(transfomation);
+    unitMatrix(transformation);
     translate(TX, TY);
     if (PRINT) printf("%d %d\n", TX, TY);
 

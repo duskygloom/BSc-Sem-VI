@@ -1,0 +1,8 @@
+$ make SOURCE=scaling_2d.c 
+mkdir -p build
+gcc -Wall -g scaling_2d.c -o build/a.out -lGL -lGLU -lglut -lm
+$ make run
+build/a.out
+Pivot(x, y): -30 20
+Scaling factor (x, y): 1.4 1.4
+Use arrow keys to move the pivot and A,W,S,D keys to control scaling.

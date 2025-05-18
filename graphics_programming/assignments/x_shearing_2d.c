@@ -12,15 +12,10 @@
 
 int PRINT = 0;
 
-int PX, PY, theta;
+int transformPolygon = 1;
 
-/**
- * @note
- * Sometimes the transformed polygon is not
- * shown (to avoid transforming the polygon
- * when moving the pivot point).
- */
-int showTransformation = 1;
+int PX, PY;
+float SHX;
 
 void drawAxes() {
     glBegin(GL_LINES);
@@ -80,22 +75,15 @@ void translate(int tx, int ty) {
     matrixMultiply(transformation, translation);
 }
 
-#define DEG_TO_RAD(x) ((x) * M_PI / 180.0)
-
-/**
- * @note
- * angle should be in degrees.
- */
-void rotate(float angle) {
-    angle = DEG_TO_RAD(angle);
-    // create rotation matrix
-    Matrix3x3 rotation = {
-        {cos(angle), -sin(angle), 0},
-        {sin(angle), cos(angle), 0},
+void sheerAlongX(float shx) {
+    // create translation matrix
+    Matrix3x3 sheering = {
+        {1, shx, 0},
+        {0, 1, 0},
         {0, 0, 1}
     };
     // multiply with global transformation matrix
-    matrixMultiply(transformation, rotation);
+    matrixMultiply(transformation, sheering);
 }
 
 float getTransformedX(int x, int y) {
@@ -116,14 +104,13 @@ void retransform() {
     // begin transformation!
     unitMatrix(transformation);
     translate(PX, PY);
-    rotate(theta);
+    sheerAlongX(SHX);
     translate(-PX, -PY);
 }
 
 void displayFunc(void) {
     glClearColor(0.12, 0.12, 0.12, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
-    // enable transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -135,19 +122,18 @@ void displayFunc(void) {
     glVertex2i(PX, PY); // pivot point
     glEnd();
 
-    // a faint polygon to show the original position
-    glColor4f(1, 1, 1, 0.25);
-    // only draw the outline
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // draw a faint polygon to show the original position
+    glColor4f(1, 1, 1, 0.25);
     glBegin(GL_TRIANGLES);
     glVertex2i(X1, Y1);
     glVertex2i(X2, Y2);
     glVertex2i(X3, Y3);
     glEnd();
 
-    // a solid polygon to show the translated position
-    if (showTransformation) {
-        glColor3f(1, 1, 1);
+    if (transformPolygon) {
+        // a solid polygon to show the translated position
+        glColor4f(1, 1, 1, 1.0);
         glBegin(GL_TRIANGLES);
         glVertex2i(getTransformedX(X1, Y1), getTransformedY(X1, Y1));
         glVertex2i(getTransformedX(X2, Y2), getTransformedY(X2, Y2));
@@ -155,9 +141,20 @@ void displayFunc(void) {
         glEnd();
     }
     
-
     glutSwapBuffers(); // somehow works like flush
     PRINT = 0; // print only once
+}
+
+void keyboardFunc(unsigned char key, int x, int y) {
+    switch (key) {
+        case 'a':
+            SHX -= 0.1; break;
+        case 'd':
+            SHX += 0.1; break;
+    }
+    retransform();
+    transformPolygon = 1; // transform polygon now
+    glutPostRedisplay();
 }
 
 void specialKeyFunc(int key, int x, int y) {
@@ -171,45 +168,32 @@ void specialKeyFunc(int key, int x, int y) {
         case GLUT_KEY_DOWN:
             PY -= 10; break;
     }
-    theta = 0; // reset rotation
-    showTransformation = 0; // dont show transformation when
-                            // moving pivot
-    glutPostRedisplay(); // redraw window
-}
-
-void keyboardFunc(unsigned char key, int x, int y) {
-    switch (key) {
-        case '=':
-            theta = (theta+10) % 360; break;
-        case '-':
-            theta = (theta-10) % 360; break;
-    }
-    retransform(); // retransform
-    showTransformation = 1; // show transformation
+    transformPolygon = 0; // dont transform polygon when
+                          // moving pivot
+    SHX = 0; // reset shearing factor
     glutPostRedisplay(); // redraw window
 }
 
 int main(int argc, char **argv) {
     /**
      * @note
-     * Code will draw a polygon and then rotate it
-     * by theta degrees along pivot (PX, PY).
-     * Additionally, the user can use arrow keys to
-     * move the pivot point and =/- keys to rotate
-     * the polygon.
+     * Code will draw a polygon and then shear it
+     * along X axis with a user specified SHX value
+     * and a user specified pivot.
      */
     printf("Pivot(x, y): ");
     scanf("%d %d", &PX, &PY);
-    printf("Angle of rotation (in degrees): ");
-    scanf("%d", &theta);
+    printf("Shearing factor (x): ");
+    scanf("%f", &SHX);
+
     retransform(); // initial transformation
 
     glutInit(&argc, argv);
 
     glutInitWindowSize(WIDTH, HEIGHT);
     // RGB and double buffer (whatever that means)
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA);
-    glutCreateWindow("2D rotation");
+    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_ALPHA);
+    glutCreateWindow("2D shearing");
 
     glMatrixMode(GL_PROJECTION);
     // window coordinates
@@ -219,8 +203,7 @@ int main(int argc, char **argv) {
     glutSpecialFunc(specialKeyFunc);
     glutKeyboardFunc(keyboardFunc);
 
-    printf("Use arrow keys to move the pivot.\n");
-    printf("Use = and - keys to rotate the polygon.\n");
+    printf("Use arrow keys to move the pivot and A,D keys to control shearing.\n");
 
     glutMainLoop(); // loop
 }

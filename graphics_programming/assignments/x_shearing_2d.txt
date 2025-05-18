@@ -1,0 +1,8 @@
+$ make SOURCE=x_shearing_2d.c 
+mkdir -p build
+gcc -Wall -g x_shearing_2d.c -o build/a.out -lGL -lGLU -lglut -lm
+$ make run
+build/a.out
+Pivot(x, y): -20 -60
+Shearing factor (x): 1
+Use arrow keys to move the pivot and A,D keys to control shearing.

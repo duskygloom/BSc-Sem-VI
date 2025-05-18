@@ -12,15 +12,7 @@
 
 int PRINT = 0;
 
-int PX, PY, theta;
-
-/**
- * @note
- * Sometimes the transformed polygon is not
- * shown (to avoid transforming the polygon
- * when moving the pivot point).
- */
-int showTransformation = 1;
+int PX, PY;
 
 void drawAxes() {
     glBegin(GL_LINES);
@@ -80,22 +72,15 @@ void translate(int tx, int ty) {
     matrixMultiply(transformation, translation);
 }
 
-#define DEG_TO_RAD(x) ((x) * M_PI / 180.0)
-
-/**
- * @note
- * angle should be in degrees.
- */
-void rotate(float angle) {
-    angle = DEG_TO_RAD(angle);
-    // create rotation matrix
-    Matrix3x3 rotation = {
-        {cos(angle), -sin(angle), 0},
-        {sin(angle), cos(angle), 0},
+void reflectAlongOrigin() {
+    // create translation matrix
+    Matrix3x3 reflection = {
+        {-1, 0, 0},
+        {0, -1, 0},
         {0, 0, 1}
     };
     // multiply with global transformation matrix
-    matrixMultiply(transformation, rotation);
+    matrixMultiply(transformation, reflection);
 }
 
 float getTransformedX(int x, int y) {
@@ -116,7 +101,7 @@ void retransform() {
     // begin transformation!
     unitMatrix(transformation);
     translate(PX, PY);
-    rotate(theta);
+    reflectAlongOrigin();
     translate(-PX, -PY);
 }
 
@@ -145,16 +130,15 @@ void displayFunc(void) {
     glVertex2i(X3, Y3);
     glEnd();
 
+    retransform();
+
     // a solid polygon to show the translated position
-    if (showTransformation) {
-        glColor3f(1, 1, 1);
-        glBegin(GL_TRIANGLES);
-        glVertex2i(getTransformedX(X1, Y1), getTransformedY(X1, Y1));
-        glVertex2i(getTransformedX(X2, Y2), getTransformedY(X2, Y2));
-        glVertex2i(getTransformedX(X3, Y3), getTransformedY(X3, Y3));
-        glEnd();
-    }
-    
+    glColor4f(1, 1, 1, 1.0);
+    glBegin(GL_TRIANGLES);
+    glVertex2i(getTransformedX(X1, Y1), getTransformedY(X1, Y1));
+    glVertex2i(getTransformedX(X2, Y2), getTransformedY(X2, Y2));
+    glVertex2i(getTransformedX(X3, Y3), getTransformedY(X3, Y3));
+    glEnd();
 
     glutSwapBuffers(); // somehow works like flush
     PRINT = 0; // print only once
@@ -171,45 +155,24 @@ void specialKeyFunc(int key, int x, int y) {
         case GLUT_KEY_DOWN:
             PY -= 10; break;
     }
-    theta = 0; // reset rotation
-    showTransformation = 0; // dont show transformation when
-                            // moving pivot
-    glutPostRedisplay(); // redraw window
-}
-
-void keyboardFunc(unsigned char key, int x, int y) {
-    switch (key) {
-        case '=':
-            theta = (theta+10) % 360; break;
-        case '-':
-            theta = (theta-10) % 360; break;
-    }
-    retransform(); // retransform
-    showTransformation = 1; // show transformation
     glutPostRedisplay(); // redraw window
 }
 
 int main(int argc, char **argv) {
     /**
      * @note
-     * Code will draw a polygon and then rotate it
-     * by theta degrees along pivot (PX, PY).
-     * Additionally, the user can use arrow keys to
-     * move the pivot point and =/- keys to rotate
-     * the polygon.
+     * Code will draw a polygon and then reflect it
+     * along a pivot point specified.
      */
     printf("Pivot(x, y): ");
     scanf("%d %d", &PX, &PY);
-    printf("Angle of rotation (in degrees): ");
-    scanf("%d", &theta);
-    retransform(); // initial transformation
 
     glutInit(&argc, argv);
 
     glutInitWindowSize(WIDTH, HEIGHT);
     // RGB and double buffer (whatever that means)
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA);
-    glutCreateWindow("2D rotation");
+    glutCreateWindow("2D reflection");
 
     glMatrixMode(GL_PROJECTION);
     // window coordinates
@@ -217,10 +180,8 @@ int main(int argc, char **argv) {
 
     glutDisplayFunc(displayFunc);
     glutSpecialFunc(specialKeyFunc);
-    glutKeyboardFunc(keyboardFunc);
 
     printf("Use arrow keys to move the pivot.\n");
-    printf("Use = and - keys to rotate the polygon.\n");
 
     glutMainLoop(); // loop
 }

@@ -1,0 +1,7 @@
+$ make SOURCE=reflection_2d.c 
+mkdir -p build
+gcc -Wall -g reflection_2d.c -o build/a.out -lGL -lGLU -lglut -lm
+$ make run
+build/a.out
+Pivot(x, y): -30 30
+Use arrow keys to move the pivot.
