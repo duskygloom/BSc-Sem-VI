@@ -1,457 +1,301 @@
-/**
- * @todo
- * Add multiple light source support.
- */
-
-#include "matrix.h"
 #include "vector.h"
 
 #include <math.h>
 #include <stdio.h>
 #include <GL/glut.h>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-/* Subtle tweaks. */
 int PRINT = 1;
-int USE_DISTANCE = 1;
-int DRAW_LIGHT_AXES = 0;
-int DRAW_WORLD_AXES = 1;
 
-/* Camera. */
-vector_t camera = {600, 600, 600};
+const vector_t camera = {300, 500, 800};
+const vector_t boxColour = {0.8, 0.4, 0.2};
 
-/* About light sources. */
-vector_t lights[] = {
-    /* Position                 Color                   Brightness (only .x is used) */
-       {300, 500, 300},         {0xff, 0xe9, 0x48},     {0.4, 0, 0},
-       {-500, 500, -300},       {0xff, 0xe9, 0x48},     {0.4, 0, 0},
+/* Lights */
+
+typedef struct Light {
+    vector_t position;
+    float brightness;
+} light_t;
+
+const light_t lights[] = {
+    {{-80,    300,    300},        1.0},
+    {{-500,   -400,   -300},       0.4},
+    {{600,    600,    600},        0.8},
+    {{100,    100,   -100},        0.6},
 };
 
-const int nLights = sizeof(lights) / sizeof(vector_t) / 3;
+/* Vertices */
+const vector_t VA = {0, 0, 0};
+const vector_t VB = {0, 200, 0};
+const vector_t VC = {200, 200, 0};
+const vector_t VD = {200, 0, 0};
+const vector_t VE = {200, 0, 200};
+const vector_t VF = {0, 0, 200};
+const vector_t VG = {0, 200, 200};
+const vector_t VH = {200, 200, 200};
 
-/* Value of p and k used in the algorithm. */
-int pValue = 1;
-float kValue = 0.0001f;
+/* Face normals 
+   Could be calculated using cross product,
+   but hardcoding for simplicity. */
+const vector_t N1 = {0, 0, -1};
+const vector_t N2 = {-1, 0, 0};
+const vector_t N3 = {0, 0, 1};
+const vector_t N4 = {1, 0, 0};
+const vector_t N5 = {0, 1, 0};
+const vector_t N6 = {0, -1, 0};
 
+void drawAxes(void) {
+    glBegin(GL_LINES);
 
-/* Utility functions to make life easier. */
+    glColor3f(1.0, 0.4, 0.4);
+    glVertex3d(-1000, 0, 0); glVertex3d(1000, 0, 0);
+    glColor3f(0.4, 1.0, 0.4);
+    glVertex3d(0, -1000, 0); glVertex3d(0, 1000, 0);
+    glColor3f(0.4, 0.2, 1.4);
+    glVertex3d(0, 0, -1000); glVertex3d(0, 0, 1000);
 
-vector_t getLightPos(int i) {
-    if (i < 0 || i >= nLights) { // return zero vector if out of bounds
-        vector_t nullVector = {0, 0, 0};
-        return nullVector;
-    }
-    return lights[3*i];
+    glEnd();
 }
 
-vector_t getLightColor(int i) {
-    if (i < 0 || i >= nLights) {
-        vector_t nullVector = {0, 0, 0};
-        return nullVector;
-    }
-    return lights[3*i+1];
+void drawLights(void) {
+    glPointSize(8);
+    glBegin(GL_POINTS);
+    glColor3f(1.0, 1.0, 1.0);
+    for (int i = 0; i < sizeof(lights) / sizeof(light_t); ++i)
+        glVertex3i(lights[i].position.x, lights[i].position.y, lights[i].position.z);
+    glEnd();
 }
 
-float getLightBrightness(int i) {
-    if (i < 0 || i >= nLights) return 0.0;
-    return lights[3*i+2].x;
-}
-
-void drawVertex(vector_t point) {
-    glVertex3d(point.x, point.y, point.z);
-}
-
-/**
- * @brief
- * Clamps a float value between 0 and 1.
- */
 float clamp(float f) {
     return f > 1.0 ? 1.0 : (f < 0.0 ? 0.0 : f);
 }
 
-void changeColor3f(vector_t color) {
-    glColor3f(clamp(color.x),
-              clamp(color.y),
-              clamp(color.z));
+void changeColorAndIntensity(vector_t color, float specularI,
+                             float nonSpecularI) {
+    vector_t finalColor = vectorSum(vectorScale(color, nonSpecularI),
+                               vectorScale((vector_t){1.0, 1.0, 1.0}, specularI));
+    glColor3f(clamp(finalColor.x),
+              clamp(finalColor.y),
+              clamp(finalColor.z));
 }
 
-void changeColor3i(vector_t color) {
-    glColor3f(clamp(color.x/255.0),
-              clamp(color.y/255.0),
-              clamp(color.z/255.0));
+/* Intensity calculation */
+
+float getAmbientI() {
+    const float ia = 0.5;
+    const float ka = 0.4;
+    return ia * ka;
 }
 
-vector_t getColorWithIntensity(vector_t color, float intensity) {
-    vector_t newColor = {(color.x/255.0) * intensity,
-                         (color.y/255.0) * intensity,
-                         (color.z/255.0) * intensity};
-    return newColor;
+/**
+ * @param light
+ * Light position.
+ * @param point
+ * The point to be illuminated.
+ * @param normal
+ * Normal vector at the point P.
+ */
+float getDiffusedI(vector_t light, float brightness, vector_t point, vector_t normal) {
+    const float il = 1.0;
+    float kd = brightness;
+    vector_t lightVector = vectorSum(light, vectorScale(point, -1));
+    float dotProduct = vectorDot(lightVector, normal);
+    if (dotProduct <= 0) return 0;
+    float magnitude = vectorMagnitude(lightVector) * vectorMagnitude(normal);
+    return il * kd * (dotProduct / magnitude);
+}
+
+float getSpecularI(vector_t light, vector_t point, vector_t normal) {
+    const float il = 0.6;
+    const float ks = 0.6;
+    const float n = 10.0;
+    vector_t lightVector = vectorSum(light, vectorScale(point, -1));
+    vector_t cameraVector = vectorSum(camera, vectorScale(point, -1));
+
+    vector_t halfwayVector = vectorSum(lightVector, cameraVector);
+    float dotProduct = vectorDot(normal, halfwayVector);
+    if (dotProduct <= 0) return 0;
+    float magnitude = vectorMagnitude(normal) * vectorMagnitude(halfwayVector);
+    return il * ks * powf(dotProduct / magnitude, n);
 }
 
 /**
  * @brief
- * Calculates the intensity of the reflected light using
- * the faceCenter and outerNormal. 
+ * Calculates the total specular reflection intensity at a point
+ * from all light sources.
  */
-float getIntensity(vector_t lightPos, float brightness, vector_t faceCenter, vector_t outerNormal) {
-    const float iAlpha = 0.4;
-    const float kAlpha = 0.4;
-
-    float ambient = kAlpha * iAlpha;
-
-    float iLight = 1.0;
-
-    if (USE_DISTANCE) {
-        /* Camera is at (600, 600, 600), so the diagonal
-        distance from origin to camera is used as the
-        maximum distance. */
-        float maxDistance = 600.0 * sqrtf(3);
-        float distance = clamp(vectorDistance(faceCenter, lightPos)
-                               / maxDistance); // relative
-        iLight /= (kValue + pow(distance, pValue));
+float getTotalSpecularI(vector_t point, vector_t normal) {
+    float specular = 0;
+    for (int i = 0; i < sizeof(lights) / sizeof(light_t); ++i) {
+        specular += getSpecularI(lights[i].position, point, normal);
     }
-
-    float theta;
-    vector_t lightVector = vectorSum(lightPos, vectorScale(faceCenter, -1));
-    float magnitudes = vectorMagnitude(lightVector) * vectorMagnitude(outerNormal);
-    if (magnitudes == 0) theta = 0.0;
-    else theta = clamp(vectorDot(outerNormal, lightVector) / magnitudes);
-
-    float diffused = brightness * iLight * theta;
-
-    return ambient + diffused;
+    if (PRINT) printf("Specular: %.4f\n", specular);
+    return clamp(specular);
 }
 
 /**
  * @brief
- * Draw guidelines to make the drawing more obvious
- * because it's 3D and I can't really understand it
- * without the coordinate axes.
+ * Calculates the total diffused reflection intensity at a point
+ * from all light sources.
  */
-void drawAxes(void) {
-    glBegin(GL_LINES);
-
-    if (DRAW_LIGHT_AXES) {
-        glColor3f(0.4, 0.4, 0.4);
-        for (int i = 0; i < nLights; ++i) {
-            glVertex3d(getLightPos(i).x, 0, 0); drawVertex(getLightPos(i));
-            glVertex3d(0, getLightPos(i).y, 0); drawVertex(getLightPos(i));
-            glVertex3d(0, 0, getLightPos(i).z); drawVertex(getLightPos(i));
-        }
+float getTotalDiffusedI(vector_t point, vector_t normal) {
+    float diffused = 0;
+    for (int i = 0; i < sizeof(lights) / sizeof(light_t); ++i) {
+        diffused += getDiffusedI(lights[i].position,
+                                         lights[i].brightness, point, normal);
     }
-
-    if (DRAW_WORLD_AXES) {
-        glColor3f(1, 0, 0);
-        glVertex3d(-1000, 0, 0); glVertex3d(1000, 0, 0);
-        glColor3f(0, 1, 0);
-        glVertex3d(0, -1000, 0); glVertex3d(0, 1000, 0);
-        glColor3f(0, 0, 1);
-        glVertex3d(0, 0, -1000); glVertex3d(0, 0, 1000);
-    }
-
-    glEnd();
+    if (PRINT) printf("Diffused: %.4f\n", diffused);
+    return clamp(diffused);
 }
+
+/* Interpolation calculation */
 
 /**
- * @brief
- * Draw the light source as a thick dot.
+ * @param x, y
+ * Coordinates of the point to be calculated.
+ * @param IA, IB, IC, ID
+ * Intensities at the corners of the rectangle.
+ * @param XL, XR
+ * X-coordinates of the left and right edges of the rectangle.
+ * @param YB, YT
+ * Y-coordinates of the bottom and top edges of the rectangle.
  */
-void drawLight(void) {
-    glPointSize(8);
-    glBegin(GL_POINTS);
-    for (int i = 0; i < nLights; ++i) {
-        changeColor3i(getLightColor(i));
-        drawVertex(getLightPos(i));
-    }
-    glEnd();
-}
-
-/**
- * @brief
- * Returns the center of a 3D triangular face.
- */
-vector_t getTriCenter(vector_t A, vector_t B, vector_t C) {
-    vector_t AB = vectorSum(A, B);
-    vector_t ABC = vectorSum(AB, C);
-    vector_t faceCenter = vectorScale(ABC, 1.0/3);
-    return faceCenter;
-}
-
-/**
- * @brief
- * Returns the center of a 3D quadrilateral face.
- */
-vector_t getQuadCenter(vector_t A, vector_t B, vector_t C, vector_t D) {
-    vector_t AB = vectorSum(A, B);
-    vector_t CD = vectorSum(C, D);
-    vector_t ABCD = vectorSum(AB, CD);
-    vector_t faceCenter = vectorScale(ABCD, 0.25);
-    return faceCenter;
-}
-
-void drawFace1() {
-    vector_t A = {0, 0, 0};
-    vector_t B = {0, 200, 0};
-    vector_t C = {200, 200, 0};
-    vector_t D = {200, 0, 0}; // vertices
-    vector_t normal = {0, 0, -1}; // outward normal
-
-    // calculate intensity at each vertex
-    float IA = getIntensity(getLightPos(0), getLightBrightness(0), A, normal);
-    float IB = getIntensity(getLightPos(0), getLightBrightness(0), B, normal);
-    float IC = getIntensity(getLightPos(0), getLightBrightness(0), C, normal);
-    float ID = getIntensity(getLightPos(0), getLightBrightness(0), D, normal);
-
-    // first interpolate all points along AB
-    float IABarray[201];
-    for (int i = 0; i <= 200; ++i) {
-        IABarray[i] = IA + (IB - IA) * (i / 200.0);
-    }
-    // then interpolate all points along DC
-    float IDCarray[201];
-    for (int i = 0; i <= 200; ++i) {
-        IDCarray[i] = ID + (IC - ID) * (i / 200.0);
-    }
-    // finally interpolate all points from AB to DC
-    glPointSize(2);
-    glBegin(GL_POINTS);
-    for (int i = 0; i <= 200; ++i) {
-        for (int j = 0; j <= 200; ++j) {
-            float I = IABarray[j] + (IDCarray[j] - IABarray[j]) * (i / 200.0);
-            vector_t point = {i, j, 0};
-            changeColor3f(getColorWithIntensity(getLightColor(0), I));
-            drawVertex(point);
-        }
-    }
-    glEnd();
-}
-
-void drawFace2() {
-    vector_t A = {0, 0, 0};
-    vector_t B = {0, 200, 0};
-    vector_t C = {0, 200, 200};
-    vector_t D = {0, 0, 200};
-    vector_t normal = {-1, 0, 0};
-
-    // calculate intensity at each vertex
-    float IA = getIntensity(getLightPos(0), getLightBrightness(0), A, normal);
-    float IB = getIntensity(getLightPos(0), getLightBrightness(0), B, normal);
-    float IC = getIntensity(getLightPos(0), getLightBrightness(0), C, normal);
-    float ID = getIntensity(getLightPos(0), getLightBrightness(0), D, normal);
-
-    // first interpolate all points along AB
-    float IABarray[201];
-    for (int i = 0; i <= 200; ++i) {
-        IABarray[i] = IA + (IB - IA) * (i / 200.0);
-    }
-
-    // then interpolate all points along DC
-    float IDCarray[201];
-    for (int i = 0; i <= 200; ++i) {
-        IDCarray[i] = ID + (IC - ID) * (i / 200.0);
-    }
-
-    // finally interpolate all points from AB to DC
-    glPointSize(2);
-    glBegin(GL_POINTS);
-    for (int i = 0; i <= 200; ++i) {
-        for (int j = 0; j <= 200; ++j) {
-            float I = IABarray[j] + (IDCarray[j] - IABarray[j]) * (i / 200.0);
-            vector_t point = {0, i, j};
-            changeColor3f(getColorWithIntensity(getLightColor(0), I));
-            drawVertex(point);
-        }
-    }
-    glEnd();
-}
-
-Matrix4x4 face3Transformation;
-
-/**
- * @note
- * To make life easier, the third face will be drawn in the YX
- * plane. Then it can be transfomed to its actual position.
- * This function sets the transformation matrix which can then be
- * used to transform other points.
- */
-void setFace3Transformation() {
-    unitMatrix(face3Transformation);
-    // translate 200 units along Z-axis
-    multiplyMatrix(face3Transformation, (Matrix4x4){{1, 0, 0, 0},
-                                               {0, 1, 0, 0},
-                                               {0, 0, 1, 200},
-                                               {0, 0, 0, 1}});
-    // rotate 45 degrees around Y-axis
-    const float root2Inverse = 1.0 / sqrtf(2);
-    multiplyMatrix(face3Transformation, (Matrix4x4){{root2Inverse, 0, root2Inverse, 0},
-                                               {0, 1, 0, 0},
-                                               {-root2Inverse, 0, root2Inverse, 0},
-                                               {0, 0, 0, 1}});
-}
-
-/**
- * @warning
- * Use this function before shading or the distance will
- * be incorrect. Use the normal of the original polygon
- * and not the simplified one in YX plane duh.
- */
-vector_t getFace3TransformedPoint(vector_t point) {
-    float x = face3Transformation[0][0] * point.x +
-              face3Transformation[0][1] * point.y +
-              face3Transformation[0][2] * point.z +
-              face3Transformation[0][3];
-    float y = face3Transformation[1][0] * point.x +
-              face3Transformation[1][1] * point.y +
-              face3Transformation[1][2] * point.z +
-              face3Transformation[1][3];
-    float z = face3Transformation[2][0] * point.x +
-              face3Transformation[2][1] * point.y +
-              face3Transformation[2][2] * point.z +
-              face3Transformation[2][3];
-    return (vector_t){x, y, z};
-}
-
-/**
- * @note
- * This face is a bit special. Refer to the note of
- * setFace3Transformation().
- */
-void drawFace3() {
-    vector_t A = {0, 0, 0};
-    vector_t B = {0, 200, 0};
-    vector_t C = {282, 200, 0};
-    vector_t D = {282, 0, 0}; // vertices
-    vector_t normal = {1, 0, 1}; // outward normal
-
-    // calculate intensity at each vertex
-    float IA = getIntensity(getLightPos(0), getLightBrightness(0), A, normal);
-    float IB = getIntensity(getLightPos(0), getLightBrightness(0), B, normal);
-    float IC = getIntensity(getLightPos(0), getLightBrightness(0), C, normal);
-    float ID = getIntensity(getLightPos(0), getLightBrightness(0), D, normal);
-
-    // first interpolate all points along AB
-    float IABarray[201];
-    for (int i = 0; i <= 200; ++i) {
-        IABarray[i] = IA + (IB - IA) * (i / 200.0);
-    }
-
-    // then interpolate all points along DC
-    float IDCarray[201];
-    for (int i = 0; i <= 200; ++i) {
-        IDCarray[i] = ID + (IC - ID) * (i / 200.0);
-    }
-
-    // finally interpolate all points from AB to DC
-    glPointSize(2);
-    glBegin(GL_POINTS);
-    setFace3Transformation(); // calculate the transformation matrix
-    for (int i = 0; i <= 282; ++i) {
-        for (int j = 0; j <= 200; ++j) {
-            float I = IABarray[j] + (IDCarray[j] - IABarray[j]) * (i / 282.0);
-            // transform the point to its actual position
-            vector_t point = getFace3TransformedPoint((vector_t){i, j, 0});
-            changeColor3f(getColorWithIntensity(getLightColor(0), I));
-            drawVertex(point);
-        }
-    }
-    glEnd();
-}
-
-void drawFace4() {
-    vector_t A = {0, 200, 0};
-    vector_t B = {0, 200, 200};
-    vector_t C = {200, 200, 0};
-    vector_t normal = {0, 1, 0}; // outward normal
-
-    // calculate intensity at each vertex
-    float IA = getIntensity(getLightPos(0), getLightBrightness(0), A, normal);
-    float IB = getIntensity(getLightPos(0), getLightBrightness(0), B, normal);
-    float IC = getIntensity(getLightPos(0), getLightBrightness(0), C, normal);
-
-    // first interpolate all points along AB
-    float IABarray[201];
-    for (int i = 0; i <= 200; ++i) {
-        IABarray[i] = IA + (IB - IA) * (i / 200.0);
-    }
-
-    // then interpolate all points along AC
-    float IACarray[201];
-    for (int i = 0; i <= 200; ++i) {
-        IACarray[i] = IA + (IC - IA) * (i / 200.0);
-    }
-
-    // finally interpolate all points from AB to AC
-    glPointSize(2);
-    glBegin(GL_POINTS);
-    for (int i = 0; i <= 200; ++i) {
-        if (i == 0) continue; // to avoid division by zero
-        for (int j = 0; j <= i; ++j) {
-            float I = IABarray[i] + (IACarray[i] - IABarray[i]) * (j / i);
-            vector_t point = {200-i, 200, j};
-            changeColor3f(getColorWithIntensity(getLightColor(0), I));
-            drawVertex(point);
-        }
-    }
-    glEnd();
-}
-
-void drawFace5() {
-    vector_t A = {0, 0, 0};
-    vector_t B = {0, 0, 200};
-    vector_t C = {200, 0, 0};
-    vector_t normal = {0, -1, 0}; // outward normal
-
-    // calculate intensity at each vertex
-    float IA = getIntensity(getLightPos(0), getLightBrightness(0), A, normal);
-    float IB = getIntensity(getLightPos(0), getLightBrightness(0), B, normal);
-    float IC = getIntensity(getLightPos(0), getLightBrightness(0), C, normal);
-
-    // first interpolate all points along AB
-    float IABarray[201];
-    for (int i = 0; i <= 200; ++i) {
-        IABarray[i] = IA + (IB - IA) * (i / 200.0);
-    }
-
-    // then interpolate all points along AC
-    float IACarray[201];
-    for (int i = 0; i <= 200; ++i) {
-        IACarray[i] = IA + (IC - IA) * (i / 200.0);
-    }
-
-    // finally interpolate all points from AB to AC
-    glPointSize(2);
-    glBegin(GL_POINTS);
-    for (int i = 0; i <= 200; ++i) {
-        if (i == 0) continue; // to avoid division by zero error
-        for (int j = 0; j <= i; ++j) {
-            float I = IABarray[i] + (IACarray[i] - IABarray[i]) * (j / i);
-            vector_t point = {200-i, 0, j};
-            changeColor3f(getColorWithIntensity(getLightColor(0), I));
-            drawVertex(point);
-        }
-    }
-    glEnd();
+float getIntensityAt(int x, int y, float IA, float IB, float IC, float ID,
+                     int XL, int XR, int YB, int YT) {
+    float IP = IA * (y - YB)/(YT - YB) + ID * (YT - y)/(YT - YB);
+    float IQ = IB * (y - YB)/(YT - YB) + IC * (YT - y)/(YT - YB);
+    float I = IP * (XR - x)/(XR - XL) + IQ * (x - XL)/(XR - XL);
+    return I;
 }
 
 void display(void) {
-    glClearColor(0, 0, 0, 1);
+    glClearColor(0.12, 0.12, 0.12, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     drawAxes();
-    drawLight();
+    drawLights();
 
-    drawFace1();
-    drawFace2();
-    drawFace3();
-    drawFace4();
-    drawFace5();
+    glPointSize(2);
+    glBegin(GL_POINTS);
+
+    /* Normals at each vertex */
+    vector_t NA = vectorSum(N1, vectorSum(N2, N6));
+    vector_t NB = vectorSum(N1, vectorSum(N2, N5));
+    vector_t NC = vectorSum(N1, vectorSum(N4, N5));
+    vector_t ND = vectorSum(N1, vectorSum(N4, N6));
+    vector_t NE = vectorSum(N3, vectorSum(N4, N6));
+    vector_t NF = vectorSum(N2, vectorSum(N3, N6));
+    vector_t NG = vectorSum(N2, vectorSum(N3, N5));
+    vector_t NH = vectorSum(N3, vectorSum(N4, N5));
+
+    /* Total specular intensity at each vertex */
+    float specularA = getTotalSpecularI(VA, NA);
+    float specularB = getTotalSpecularI(VB, NB);
+    float specularC = getTotalSpecularI(VC, NC);
+    float specularD = getTotalSpecularI(VD, ND);
+    float specularE = getTotalSpecularI(VE, NE);
+    float specularF = getTotalSpecularI(VF, NF);
+    float specularG = getTotalSpecularI(VG, NG);
+    float specularH = getTotalSpecularI(VH, NH);
+
+    /* Total ambient and diffused intensity at each vertex */
+    float nonSpecularA = getTotalDiffusedI(VA, NA) + getAmbientI();
+    float nonSpecularB = getTotalDiffusedI(VB, NB) + getAmbientI();
+    float nonSpecularC = getTotalDiffusedI(VC, NC) + getAmbientI();
+    float nonSpecularD = getTotalDiffusedI(VD, ND) + getAmbientI();
+    float nonSpecularE = getTotalDiffusedI(VE, NE) + getAmbientI();
+    float nonSpecularF = getTotalDiffusedI(VF, NF) + getAmbientI();
+    float nonSpecularG = getTotalDiffusedI(VG, NG) + getAmbientI();
+    float nonSpecularH = getTotalDiffusedI(VH, NH) + getAmbientI();
+
+    /* FACE 1 */
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            float specular = getIntensityAt(x, y, 
+                specularB, specularC, specularD, specularA,
+                0, 200, 0, 200);
+            float nonSpecular = getIntensityAt(x, y,
+                nonSpecularB, nonSpecularC, nonSpecularD, nonSpecularA,
+                0, 200, 0, 200);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(x, y, 0);
+        }
+    }
+
+    /* FACE 2 */
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            float specular = getIntensityAt(x, y,
+                specularB, specularG, specularF, specularA,
+                0, 200, 0, 200);
+            float nonSpecular = getIntensityAt(x, y,
+                nonSpecularB, nonSpecularG, nonSpecularF, nonSpecularA,
+                0, 200, 0, 200);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(0, y, x);
+        }
+    }
+
+    /* FACE 3 */
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            float specular = getIntensityAt(x, y,
+                specularG, specularH, specularE, specularF,
+                0, 200, 0, 200);
+            float nonSpecular = getIntensityAt(x, y,
+                nonSpecularG, nonSpecularH, specularE, nonSpecularF,
+                0, 200, 0, 200);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(x, y, 200);
+        }
+    }
+
+    /* FACE 4 */
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            float specular = getIntensityAt(x, y,
+                specularC, specularH, specularE, specularD,
+                0, 200, 0, 200);
+            float nonSpecular = getIntensityAt(x, y,
+                nonSpecularC, nonSpecularH, nonSpecularE, nonSpecularD,
+                0, 200, 0, 200);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(200, y, x);
+        }
+    }
+
+    /* FACE 5 */
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            float specular = getIntensityAt(x, y,
+                specularG, specularH, specularC, specularB,
+                0, 200, 0, 200);
+            float nonSpecular = getIntensityAt(x, y,
+                nonSpecularG, nonSpecularH, nonSpecularC, nonSpecularB,
+                0, 200, 0, 200);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(x, 200, y);
+        }
+    }
+
+    /* FACE 6 */
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            float specular = getIntensityAt(x, y,
+                specularF, specularE, specularD, specularA,
+                0, 200, 0, 200);
+            float nonSpecular = getIntensityAt(x, y,
+                nonSpecularF, nonSpecularE, nonSpecularD, nonSpecularA,
+                0, 200, 0, 200);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(x, 0, y);
+        }
+    }
+    
+    glEnd();
 
     glutSwapBuffers();
-    PRINT = 0; // to avoid printing the second time display 
-               // function is called
+
+    PRINT = 0;
 }
 
 /**
@@ -533,13 +377,13 @@ int main(int argc, char **argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
-    glutCreateWindow("Gouroud shading");
+    glutCreateWindow("With gouroud shading");
 
     /* Set 3D viewing attributes. */
     glEnable(GL_DEPTH_TEST);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(30, 4.0/3, 1, 2000);
+    gluPerspective(60, 4.0/3, 1, 2000);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(camera.x, camera.y, camera.z,

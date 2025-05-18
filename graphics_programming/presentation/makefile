@@ -1,19 +1,15 @@
 CC = gcc
-CFLAGS = -Wall -g -lGL -lGLU -lglut -lm
+FLAGS = -Wall -g
 BUILD = build
 BINARY = a.out
 
-FLAT_OBJECTS = $(BUILD)/vector.o $(BUILD)/flat_shading.o
-GOUROUD_OBJECTS = $(BUILD)/vector.o $(BUILD)/matrix.o $(BUILD)/gouroud_shading.o
+OBJECTS = $(BUILD)/vector.o $(BUILD)/matrix.o $(BUILD)/$(SOURCE:%.c=%.o)
 
-flat: start $(FLAT_OBJECTS)
-	$(CC) $(FLAT_OBJECTS) -o $(BINARY) $(CFLAGS)
-
-gouroud: start $(GOUROUD_OBJECTS)
-	$(CC) $(GOUROUD_OBJECTS) -o $(BINARY) $(CFLAGS)
+all: $(OBJECTS)
+	$(CC) -o $(BINARY) $(OBJECTS) $(FLAGS) -lGL -lGLU -lglut -lm
 
 $(BUILD)/%.o: %.c
-	$(CC) -c $< -o $@ $(CFLAGS)
+	$(CC) -c $< -o $@ $(FLAGS) -lGL -lGLU -lglut -lm
 
 start:
 	mkdir -p $(BUILD)
@@ -23,4 +19,3 @@ clean:
 
 run:
 	./$(BINARY)
-	

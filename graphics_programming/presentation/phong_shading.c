@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <GL/glut.h>
 
-int PRINT = 1;
+int PRINT = 0;
 
 const vector_t camera = {300, 500, 800};
 const vector_t boxColour = {0.8, 0.4, 0.2};
@@ -19,7 +19,7 @@ typedef struct Light {
 const light_t lights[] = {
     {{-80,    300,    300},        1.0},
     {{-500,   -400,   -300},       0.4},
-    {{600,    600,    600},        0.8},
+    {{600,    600,    600},        0.4},
     {{100,    100,   -100},        0.6},
 };
 
@@ -60,7 +60,7 @@ void drawLights(void) {
     glPointSize(8);
     glBegin(GL_POINTS);
     glColor3f(1.0, 1.0, 1.0);
-    for (int i = 1; i < sizeof(lights) / sizeof(light_t); ++i)
+    for (int i = 0; i < sizeof(lights) / sizeof(light_t); ++i)
         glVertex3i(lights[i].position.x, lights[i].position.y, lights[i].position.z);
     glEnd();
 }
@@ -69,20 +69,16 @@ float clamp(float f) {
     return f > 1.0 ? 1.0 : (f < 0.0 ? 0.0 : f);
 }
 
-void changeColorAndIntensity(vector_t color, float specularI, float nonSpecularI) {
+void changeColorAndIntensity(vector_t color, float specularI,
+                             float nonSpecularI) {
     vector_t finalColor = vectorSum(vectorScale(color, nonSpecularI),
-                                    vectorScale((vector_t){1.0, 1.0, 1.0}, specularI));
+                               vectorScale((vector_t){1.0, 1.0, 1.0}, specularI));
     glColor3f(clamp(finalColor.x),
               clamp(finalColor.y),
               clamp(finalColor.z));
 }
 
-vector_t getQuadCenter(vector_t A, vector_t B, vector_t C, vector_t D) {
-    vector_t total = vectorSum(A, vectorSum(B, vectorSum(C, D)));
-    return vectorScale(total, 0.25);
-}
-
-/* Intensity calculation functions */
+/* Intensity calculation */
 
 float getAmbientI() {
     const float ia = 0.5;
@@ -109,7 +105,7 @@ float getDiffusedI(vector_t light, float brightness, vector_t point, vector_t no
 }
 
 float getSpecularI(vector_t light, vector_t point, vector_t normal) {
-    const float il = 0.6;
+    const float il = 0.5;
     const float ks = 0.4;
     const float n = 8.0;
     vector_t lightVector = vectorSum(light, vectorScale(point, -1));
@@ -122,6 +118,11 @@ float getSpecularI(vector_t light, vector_t point, vector_t normal) {
     return il * ks * powf(dotProduct / magnitude, n);
 }
 
+/**
+ * @brief
+ * Calculates the total specular reflection intensity at a point
+ * from all light sources.
+ */
 float getTotalSpecularI(vector_t point, vector_t normal) {
     float specular = 0;
     for (int i = 0; i < sizeof(lights) / sizeof(light_t); ++i) {
@@ -131,6 +132,11 @@ float getTotalSpecularI(vector_t point, vector_t normal) {
     return clamp(specular);
 }
 
+/**
+ * @brief
+ * Calculates the total diffused reflection intensity at a point
+ * from all light sources.
+ */
 float getTotalDiffusedI(vector_t point, vector_t normal) {
     float diffused = 0;
     for (int i = 0; i < sizeof(lights) / sizeof(light_t); ++i) {
@@ -141,6 +147,29 @@ float getTotalDiffusedI(vector_t point, vector_t normal) {
     return clamp(diffused);
 }
 
+/* Interpolation calculation */
+
+/**
+ * @param x, y
+ * Coordinates of the point to be calculated.
+ * @param NA, NB, NC, ND
+ * Normals at the corners of the rectangle.
+ * @param XL, XR
+ * X-coordinates of the left and right edges of the rectangle.
+ * @param YB, YT
+ * Y-coordinates of the bottom and top edges of the rectangle.
+ */
+vector_t getNormalAt(int x, int y, vector_t NA, vector_t NB, vector_t NC, vector_t ND,
+                     int XL, int XR, int YB, int YT) {
+    vector_t NP = vectorSum(vectorScale(NA, (float)(y - YB)/(YT - YB)),
+                            vectorScale(ND, (float)(YT - y)/(YT - YB)));
+    vector_t NQ = vectorSum(vectorScale(NB, (float)(y - YB)/(YT - YB)),
+                            vectorScale( NC, (float)(YT - y)/(YT - YB)));
+    vector_t N = vectorSum(vectorScale(NP, (float)(XR - x)/(XR - XL)),
+                           vectorScale(NQ, (float)(x - XL)/(XR - XL)));
+    return N;
+}
+
 void display(void) {
     glClearColor(0.12, 0.12, 0.12, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -148,67 +177,102 @@ void display(void) {
     drawAxes();
     drawLights();
 
-    glBegin(GL_QUADS);
+    glPointSize(2);
+    glBegin(GL_POINTS);
+
+    /* Normals at each vertex */
+    vector_t NA = vectorSum(N1, vectorSum(N2, N6));
+    vector_t NB = vectorSum(N1, vectorSum(N2, N5));
+    vector_t NC = vectorSum(N1, vectorSum(N4, N5));
+    vector_t ND = vectorSum(N1, vectorSum(N4, N6));
+    vector_t NE = vectorSum(N3, vectorSum(N4, N6));
+    vector_t NF = vectorSum(N2, vectorSum(N3, N6));
+    vector_t NG = vectorSum(N2, vectorSum(N3, N5));
+    vector_t NH = vectorSum(N3, vectorSum(N4, N5));
 
     /* FACE 1 */
-    vector_t faceCenter1 = getQuadCenter(VA, VB, VC, VD);
-    float specularI1 = getTotalSpecularI(faceCenter1, N1);
-    float nonSpecularI1 = getAmbientI() + getTotalDiffusedI(faceCenter1, N1);
-    changeColorAndIntensity(boxColour, specularI1, nonSpecularI1);
-    glVertex3i(VA.x, VA.y, VA.z);
-    glVertex3i(VB.x, VB.y, VB.z);
-    glVertex3i(VC.x, VC.y, VC.z);
-    glVertex3i(VD.x, VD.y, VD.z);
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            vector_t normal = getNormalAt(x, y, NB, NC, NC, NA,
+                                          0, 200, 0, 200);
+            vector_t point = {x, y, 0};
+            float specular = getTotalSpecularI(point, normal);
+            float nonSpecular = getAmbientI() + getTotalDiffusedI(point, normal);
+            if (PRINT) printf("Specular: %.4f, Non-specular: %.4f\n", specular, nonSpecular);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(point.x, point.y, point.z);
+        }
+    }
 
     /* FACE 2 */
-    vector_t faceCenter2 = getQuadCenter(VB, VA, VF, VG);
-    float specularI2 = getTotalSpecularI(faceCenter2, N2);
-    float nonSpecularI2 = getAmbientI() + getTotalDiffusedI(faceCenter2, N2);
-    changeColorAndIntensity(boxColour, specularI2, nonSpecularI2);
-    glVertex3i(VB.x, VB.y, VB.z);
-    glVertex3i(VA.x, VA.y, VA.z);
-    glVertex3i(VF.x, VF.y, VF.z);
-    glVertex3i(VG.x, VG.y, VG.z);
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            vector_t normal = getNormalAt(x, y, NB, NG, NF, NA,
+                                          0, 200, 0, 200);
+            vector_t point = {0, y, x};
+            float specular = getTotalSpecularI(point, normal);
+            float nonSpecular = getAmbientI() + getTotalDiffusedI(point, normal);
+            if (PRINT) printf("Specular: %.4f, Non-specular: %.4f\n", specular, nonSpecular);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(point.x, point.y, point.z);
+        }
+    }
 
     /* FACE 3 */
-    vector_t faceCenter3 = getQuadCenter(VF, VE, VH, VG);
-    float specularI3 = getTotalSpecularI(faceCenter3, N3);
-    float nonSpecularI3 = getAmbientI() + getTotalDiffusedI(faceCenter3, N3);
-    changeColorAndIntensity(boxColour, specularI3, nonSpecularI3);
-    glVertex3i(VF.x, VF.y, VF.z);
-    glVertex3i(VE.x, VE.y, VE.z);
-    glVertex3i(VH.x, VH.y, VH.z);
-    glVertex3i(VG.x, VG.y, VG.z);
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            vector_t normal = getNormalAt(x, y, NG, NH, NE, NF,
+                                          0, 200, 0, 200);
+            vector_t point = {x, y, 200};
+            float nonSpecular = getAmbientI() + getTotalDiffusedI(point, normal);
+            float specular = getTotalSpecularI(point, normal);
+            if (PRINT) printf("Specular: %.4f, Non-specular: %.4f\n", specular, nonSpecular);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(point.x, point.y, point.z);
+        }
+    }
 
     /* FACE 4 */
-    vector_t faceCenter4 = getQuadCenter(VE, VD, VC, VH);
-    float specularI4 = getTotalSpecularI(faceCenter4, N4);
-    float nonSpecularI4 = getAmbientI() + getTotalDiffusedI(faceCenter4, N4);
-    changeColorAndIntensity(boxColour, specularI4, nonSpecularI4);
-    glVertex3i(VE.x, VE.y, VE.z);
-    glVertex3i(VD.x, VD.y, VD.z);
-    glVertex3i(VC.x, VC.y, VC.z);
-    glVertex3i(VH.x, VH.y, VH.z);
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            vector_t normal = getNormalAt(x, y, NC, NH, NE, ND,
+                                          0, 200, 0, 200);
+            vector_t point = {200, y, x};
+            float nonSpecular = getAmbientI() + getTotalDiffusedI(point, normal);
+            float specular = getTotalSpecularI(point, normal);
+            if (PRINT) printf("Specular: %.4f, Non-specular: %.4f\n", specular, nonSpecular);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(point.x, point.y, point.z);
+        }
+    }
 
     /* FACE 5 */
-    vector_t faceCenter5 = getQuadCenter(VB, VG, VH, VC);
-    float specularI5 = getTotalSpecularI(faceCenter5, N5);
-    float nonSpecularI5 = getAmbientI() + getTotalDiffusedI(faceCenter5, N5);
-    changeColorAndIntensity(boxColour, specularI5, nonSpecularI5);
-    glVertex3i(VB.x, VB.y, VB.z);
-    glVertex3i(VG.x, VG.y, VG.z);
-    glVertex3i(VH.x, VH.y, VH.z);
-    glVertex3i(VC.x, VC.y, VC.z);
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            vector_t normal = getNormalAt(x, y, NG, NH, NC, NB,
+                                          0, 200, 0, 200);
+            vector_t point = {x, 200, y};
+            float nonSpecular = getAmbientI() + getTotalDiffusedI(point, normal);
+            float specular = getTotalSpecularI(point, normal);
+            if (PRINT) printf("Specular: %.4f, Non-specular: %.4f\n", specular, nonSpecular);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(point.x, point.y, point.z);
+        }
+    }
 
     /* FACE 6 */
-    vector_t faceCenter6 = getQuadCenter(VA, VD, VE, VF);
-    float specularI6 = getTotalSpecularI(faceCenter6, N6);
-    float nonSpecularI6 = getAmbientI() + getTotalDiffusedI(faceCenter6, N6);
-    changeColorAndIntensity(boxColour, specularI6, nonSpecularI6);
-    glVertex3i(VA.x, VA.y, VA.z);
-    glVertex3i(VD.x, VD.y, VD.z);
-    glVertex3i(VE.x, VE.y, VE.z);
-    glVertex3i(VF.x, VF.y, VF.z);
+    for (int x = 0; x <= 200; ++x) {
+        for (int y = 0; y <= 200; ++y) {
+            vector_t normal = getNormalAt(x, y, NF, NE, ND, NA,
+                                          0, 200, 0, 200);
+            vector_t point = {x, 0, y};
+            float specular = getTotalSpecularI(point, normal);
+            float nonSpecular = getAmbientI() + getTotalDiffusedI(point, normal);
+            if (PRINT) printf("Specular: %.4f, Non-specular: %.4f\n", specular, nonSpecular);
+            changeColorAndIntensity(boxColour, specular, nonSpecular);
+            glVertex3i(point.x, point.y, point.z);
+        }
+    }
     
     glEnd();
 
@@ -296,13 +360,13 @@ int main(int argc, char **argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
-    glutCreateWindow("With flat shading");
+    glutCreateWindow("With phong shading");
 
     /* Set 3D viewing attributes. */
     glEnable(GL_DEPTH_TEST);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(30, 4.0/3, 1, 2000);
+    gluPerspective(60, 4.0/3, 1, 2000);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(camera.x, camera.y, camera.z,
