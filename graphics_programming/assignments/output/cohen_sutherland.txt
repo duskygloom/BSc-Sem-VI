@@ -1,0 +1,9 @@
+$ make SOURCE=cohen_sutherland.c 
+mkdir -p build
+gcc -Wall -g cohen_sutherland.c -o build/a.out -lGL -lGLU -lglut -lm
+$ make run
+build/a.out
+Clipping window (LRBT): -200 100 -100 50
+Point 1: 200 -30
+Point 2: -50 80
+Use arrow keys to move point 1 and A,W,S,D keys to move point 2.

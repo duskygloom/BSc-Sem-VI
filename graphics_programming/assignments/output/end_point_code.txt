@@ -1,0 +1,9 @@
+$ make SOURCE=end_point_code.c
+mkdir -p build
+gcc -Wall -g end_point_code.c -o build/a.out -lGL -lGLU -lglut -lm
+$ make run
+build/a.out
+Clipping window (LRBT): -150 200 -50 100
+Point: -200 60
+Code: 0001
+Move the cursor point using arrow keys and print code by pressing Enter.
