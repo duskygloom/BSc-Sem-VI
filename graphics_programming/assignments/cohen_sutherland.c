@@ -10,11 +10,11 @@ int PRINT = 1;
 
 int L, R, B, T;
 
-typedef struct Point {
+typedef struct Vector {
     float x, y;
-} point_t;
+} vector_t;
 
-point_t P1, P2;
+vector_t P1, P2;
 
 void drawAxes() {
     glBegin(GL_LINES);
@@ -30,7 +30,7 @@ void drawAxes() {
  * Returns the code of point (x, y) with respect to the 
  * clipping window LRBT.
  */
-int getCode(point_t p) {
+int getCode(vector_t p) {
     int code = 0;
     code = 2 * code + (p.y > T);
     code = 2 * code + (p.y < B);
@@ -77,27 +77,27 @@ void drawLine() {
  * If the code of p is 0, then it returns (0, 0). So, make
  * sure that p is not already inside clipping window.
  */
-point_t getIntersection(point_t p) {
+vector_t getIntersection(vector_t p) {
     int code = getCode(p);
     float slope = (P2.y - P1.y) / (P2.x - P1.x);
     if (code & 0b1000) { // top
         int x = (T - P1.y) / slope + P1.x;
-        return (point_t){x, T};
+        return (vector_t){x, T};
     } else if (code & 0b0100) { // bottom
         int x = (B - P1.y) / slope + P1.x;
-        return (point_t){x, B};
+        return (vector_t){x, B};
     } else if (code & 0b0010) { // right
         int y = slope * (R - P1.x) + P1.y;
-        return (point_t){R, y};
+        return (vector_t){R, y};
     } else if (code & 0b0001) { // left
         int y = slope * (L - P1.x) + P1.y;
-        return (point_t){L, y};
+        return (vector_t){L, y};
     }
-    return (point_t){0, 0};
+    return (vector_t){0, 0};
 }
 
 typedef struct Line {
-    point_t start, end;
+    vector_t start, end;
 } line_t;
 
 /**
@@ -106,7 +106,7 @@ typedef struct Line {
  * returns (0, 0). Sets found = 1 if line is clipped else
  * sets found = 0.
  */
-line_t cohenSutherland(point_t start, point_t end, int *found) {
+line_t cyrusBeck(vector_t start, vector_t end, int *found) {
     int startCode = getCode(start);
     int endCode = getCode(end);
 
@@ -117,9 +117,9 @@ line_t cohenSutherland(point_t start, point_t end, int *found) {
         *found = 0;
         return (line_t){{0, 0}, {0, 0}};
     } else if (startCode == 0) {
-        return cohenSutherland(start, getIntersection(end), found);
+        return cyrusBeck(start, getIntersection(end), found);
     } else {
-        return cohenSutherland(getIntersection(start), end, found);
+        return cyrusBeck(getIntersection(start), end, found);
     }
 }
 
@@ -132,7 +132,7 @@ void displayFunc(void) {
     drawLine();
 
     int found = 0;
-    line_t clippedLine = cohenSutherland(P1, P2, &found);
+    line_t clippedLine = cyrusBeck(P1, P2, &found);
 
     /* display clipped line */
     if (found) {

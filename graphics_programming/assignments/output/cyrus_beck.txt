@@ -1,0 +1,14 @@
+$ make SOURCE=cyrus_beck.c 
+gcc -o build/a.out build/vector.o build/cyrus_beck.o -Wall -g -lGL -lGLU -lglut -lm
+$ make run
+build/a.out
+Number of vertices in the clipping window: 5
+Enter vertices in clockwise order (very important!)
+Vertex 1 (x, y): 50 50
+Vertex 2 (x, y): 100 100
+Vertex 3 (x, y): 200 50
+Vertex 4 (x, y): 150 -100
+Vertex 5 (x, y): 50 -50
+Point 1 (x, y): -200 100
+Point 2 (x, y): 200 -50
+Use arrow keys to move point 1 and A,W,S,D keys to move point 2.

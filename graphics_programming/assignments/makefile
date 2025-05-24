@@ -1,18 +1,21 @@
-# Usage:
-# make SOURCE=foo.c
-
 CC = gcc
-BUILD = build
 FLAGS = -Wall -g
+BUILD = build
 BINARY = a.out
 
-all:
+OBJECTS = $(BUILD)/vector.o $(BUILD)/$(SOURCE:%.c=%.o)
+
+all: $(OBJECTS)
+	$(CC) -o $(BUILD)/$(BINARY) $(OBJECTS) $(FLAGS) -lGL -lGLU -lglut -lm
+
+$(BUILD)/%.o: %.c
+	$(CC) -c $< -o $@ $(FLAGS) -lGL -lGLU -lglut -lm
+
+start:
 	mkdir -p $(BUILD)
-	$(CC) $(FLAGS) $(SOURCE) -o $(BUILD)/$(BINARY) -lGL -lGLU -lglut -lm
 
 clean:
-	rm -f $(BUILD)/*
+	rm -f $(BUILD)/*.o $(BUILD)/$(BINARY)
 
 run:
 	$(BUILD)/$(BINARY)
-
