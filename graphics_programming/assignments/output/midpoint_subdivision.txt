@@ -1,0 +1,6 @@
+$ gcc midpoint_subdivision.c -lm -lGL -lGLU -lglut
+$ ./a.out 
+Clipping window (LRBT): -50 200 -50 100
+Point 1 (x, y): 200 60
+Point 2 (x, y): -150 -90
+Press A,W,S,D to move the first point and arrow keys to move the second point.
